@@ -1,1 +1,16 @@
 # React_Study
+
+## from yarn to npm
+
+책에서는 패키지 관리를 위히 yarn을 쓰고 있지만 이미 익순한 npm이 더 편하기 때문에 yarn명령어를 npm으로 바꿔서 기록
+
+리액트 프로젝트 만들기  
+yarn create react-app <프로젝트 이름> -> npm init react-app <프로젝트 이름>
+
+리액트 개발 서버 구동  
+yarn start -> npm start
+
+## VS Code Tip
+
+ESLint는 문법 검사 도구, Prettier는 코드 스타일 자동 정리 도구  
+ESLint와 Prettier 적용하기 - 77p
