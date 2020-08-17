@@ -56,3 +56,147 @@ return <ul>{list}</ul>;
 - state가 바뀔 때
 - 부모 컴포넌트가 리렌더링될 때
 - this.forceUpdate로 강제로 렌더링을 트리거할 때
+
+## 성능 최적화 290p
+
+**React.memo**  
+클래스 컴포넌트의 경우 shouldComponentUpdate를 통해 이후의 라이프 사이클을 수행할지 안할지 결정할 수 있지만,  
+함수형 컴포넌트의 경우 그럴 수 없기 때문에 React.memo를 사용한다.  
+이 함수는 컴포넌트의 props가 바뀌지 않았다면, 리렌더링하지 않는다.
+
+사용 예
+
+```javascript
+import React from "react";
+
+const TodoListItem = ({ todo, onRemove, onToggle }) => {
+  const { id, text, checked } = todo;
+  return (
+    <>
+      <div className="TodoListItem" onClick={() => onToggle(id)}>
+        <div className="text">{text}</div>
+      </div>
+      <div className="remove" onClick={() => onRemove(id)}>
+        X
+      </div>
+    </>
+  );
+};
+
+export default React.memo(TodoListItem);
+```
+
+**useState 함수형 업데이트**  
+setter함수가 상태를 어떻게 업데이트 할지 정의해주는 업데이트 함수를 사용하면 변수의 의존성을 줄일 수 있다.  
+보통 리렌더링 될 때 마다 함수가 만들어지는 것을 막기 위해 useCallback hook을 사용한다.  
+useCallback에서도 setter함수를 호출할때 기존 state를 사용하기 때문에 useCallback의 의존성에 state 변수를 추가하게 된다.
+
+사용 예  
+todos state를 아래의 useCallback 안의 함수에서 사용하고 있기 때문에 todos값이 바뀌면 해당 함수도 다시 만들어주어야 한다.  
+따라서 useCallback의 두 번째 파라미터에 의존성을 넣어준다.
+
+```javascript
+function App() {
+  const [todos, setTodos] = useState([
+    { id: 1, text: "할 일", checked: false },
+  ]);
+  const onRemove = useCallback(
+    (id) => {
+      setTodos(todos.filter((todo) => todo.id !== id));
+    },
+    [todos]
+  );
+
+  return (...) {/*중략 */}
+}
+```
+
+함수형 업데이트 사용 예  
+하지만, 아래와 같이 setter함수에 대체될 변수를 넣어주는게 아니라 상태를 어떻게 업데이트 할지 정의해주는 함수를 넣어준다면 의존성을 없앨 수 있다.
+이렇게 되면 해당 함수는 초기에 렌더링 될때만 생성 된다.
+
+```javascript
+function App() {
+const [todos, setTodos] = useState([
+  { id: 1, text: "할 일", checked: false },
+]);
+const onRemove = useCallback((id) => {
+  setTodos((todos) => todos.filter((todo) => todo.id !== id));
+}, []);
+
+return (...) {/*중략 */}
+}
+```
+
+**useReducer 사용**  
+useState의 함수형 업데이트를 사용하는 대신에 쓸 수 있는 방법이다.  
+성능상 비슷하기 때문에 편한걸로 선택해서 사용하면 된다.
+
+```javascript
+function todoReducer(todos, action) {
+  switch (action.type) {
+    case 'REMOVE':
+      return todos.filter((todo) => todo.id !== action.id);
+    default:
+      return todos;
+  }
+}
+
+function App() {
+  const [todos, dispatch] = useReducer(todoReducer, [
+  { id: 1, text: "할 일", checked: false },
+  ]);
+  const onRemove = useCallback((id) => {
+    dispatch({ type: 'REMOVE', id });
+  }, []);
+
+return (...) {/*중략 */}
+}
+```
+
+## 불변성 유지 immer 318p
+
+setter함수와 immer을 사용하는 것은 다음과 같다.
+
+immer의 produce함수는 두 가지 파라미터를 받는다.  
+첫 번째는 수정하고 싶은 상태, 두 번째는 함수이다. 이 함수는 내부에서 값을 원하는대로 변경한다.  
+핵심은 불변성에 신경 쓰지 않는 것처럼 코드를 작성하되 불변성 관리를 해준다라고 한다.  
+따라서 아래처럼 변수의 값을 직접적으로 변경해주어도 불변성이 유지가 된다.  
+ex) draft[name] = value;
+
+```javascript
+function App() {
+  const [form, setForm] = useState({ name: "", username: "" });
+
+  const onChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setForm(
+      produce(form, draft => {
+        draft[name] = value;
+      })
+    );
+  }, [form]);
+
+return (...) {/*중략 */}
+}
+```
+
+위의 코드에서 produce는 form 값에 의존적이기 때문에 useCallback에서 form 변수를 의존성에 넣어 주었다.  
+이러한 의존성을 없애기 위해서는 useState의 함수형 업데이트를 사용해야 하는데 immer와도 함께 쓰일 수 있다.  
+produce의 첫 번째 파라미터에 함수를 넣어주면 업데이트 함수를 반환해 준다.
+
+```javascript
+function App() {
+  const [form, setForm] = useState({ name: "", username: "" });
+
+   const onChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setForm(
+      produce((draft) => {
+        draft[name] = value;
+      })
+    );
+  }, []);
+return (...) {/*중략 */}
+}
+```

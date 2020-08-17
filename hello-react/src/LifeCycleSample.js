@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-
 export default class LifeCycleSample extends Component {
   state = {
     number: 0,
@@ -51,6 +50,7 @@ export default class LifeCycleSample extends Component {
     };
     return (
       <div>
+        {this.props.missing.value}
         <h1 style={style} ref={(ref) => (this.myRef = ref)}>
           {this.state.number}
         </h1>
