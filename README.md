@@ -13,6 +13,9 @@ yarn start -> npm start
 패키지 다운로드  
 yarn add node-sass -> npm i node-sass
 
+package.json 파일 생성  
+yarn init -y -> npm init -y
+
 ## VS Code Tip
 
 ESLint는 문법 검사 도구, Prettier는 코드 스타일 자동 정리 도구  

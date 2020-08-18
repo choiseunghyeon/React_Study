@@ -200,3 +200,39 @@ function App() {
 return (...) {/*중략 */}
 }
 ```
+
+## Function as a child 또는 Rnder Props 패턴 396p.
+
+```javascript
+import React from 'react';
+
+const RenderPropsSample ({children}) => {
+  return <div>children(5)</div>;
+}
+
+export default RenderPropsSample
+
+//RenderPropsSample가 위의 코드 처럼 있다면 다른 컴포넌트에서 다음과 같이 사용할 수 있다.
+<RenderPropsSample>{value=>value*2}</RenderPropsSample>
+```
+
+## Redux 흐름
+
+**상태(state)를 변경할 때**
+
+dispatch에 액션 객체를 넘겨준다.  
+dispatch는 액션 객체를 가지고 store의 reducer 함수에게 건내준다.  
+reducer는 현재 상태(state)와 액션 객체를 받아서 새로운 상태(state)를 만들어서 return 한다. 새로운 state를 만들때 action객체가 가지고 있는 값을 활용하여 만들 수 있다.  
+store의 state가 바뀔 때 마다 구독(subscribe) 하고 있는 함수가 실행된다.
+
+## Redux의 세 가지 규칙 427p
+
+- 단일 스토어
+- 읽기 전용 상태  
+  상태를 업데이트 할 때는 기존의 객체는 건드리지 않고 새로운 객체를 생성해 주어야 한다.  
+  이렇게 불변성을 유지해 주는 이유는 내부적으로 데이터가 변경되는 것을 감지하기 위해 얕은 비교(shallow equality)검사를 하기 때문이다. 깊숙하게 검사하지 않는게 좋은 성능을 유지할 수 있기 때문
+- 리듀서는 순수한 함수
+  1. 리듀서 함수는 이전 상태와 액션 객체를 파라미터로 받는다.
+  2. 파라미터 외의 값에 의존하면 안된다.
+  3. 이전 상태는 건드리지 않고, 변화를 준 새로운 상태 객체를 만들어 반환한다.
+  4. 똑같은 파라미터로 호출된 리듀서 함수는 언제나 똑같은 결과 값을 반환한다.
