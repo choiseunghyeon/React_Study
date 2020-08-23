@@ -13,6 +13,9 @@ yarn start -> npm start
 패키지 다운로드  
 yarn add node-sass -> npm i node-sass
 
+프로젝트 빌드  
+yarn build -> npm run build
+
 package.json 파일 생성  
 yarn init -y -> npm init -y
 
@@ -41,3 +44,13 @@ jsconfig.json - // import하는 컴포넌트 파일이 열려 있지 않아도 �
  "target": "es6"  
  }  
 }
+
+## Redux DevTools 445p.
+
+크롬 확장 프로그램으로 브라우저에서 리덕스 개발자 도구를 지원한다.  
+npm i redux-devtools-extension
+
+적용  
+import {composeWithDevTools} from 'redux-devtools-extension';
+
+const store = createStore(rootReducer, composeWithDevTools());

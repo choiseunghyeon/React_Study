@@ -236,3 +236,187 @@ store의 state가 바뀔 때 마다 구독(subscribe) 하고 있는 함수가 �
   2. 파라미터 외의 값에 의존하면 안된다.
   3. 이전 상태는 건드리지 않고, 변화를 준 새로운 상태 객체를 만들어 반환한다.
   4. 똑같은 파라미터로 호출된 리듀서 함수는 언제나 똑같은 결과 값을 반환한다.
+
+## Container에서 Redux 상태와 dispatch 사용하기 - connect 447p.
+
+```javascript
+// 액션 생성 함수
+import { increase, decrease } from "../modules/counter";
+import { connect } from "react-redux";
+const CounterContainer = ({ number, increase, decrease }) => {
+  return (
+    <Counter number={number} onIncrease={increase} onDecrease={decrease} />
+  );
+};
+
+const mapStateToProps = (state) => ({
+  number: state.counter.number,
+});
+const mapDispatchToProps = (dispatch) => ({
+  increase: () => dispatch(increase()),
+  decrease: () => dispatch(decrease()),
+});
+export default connect(mapStateToProps, mapDispatchToProps)(CounterContainer);
+```
+
+액션 생성 함수를 호출하고 dispatch로 감싸는 작업이 번거롭다면 bindActionCreators 유틸 함수를 사용하면 간편
+
+```javascript
+import { bindActionCreators } from 'redux';
+import { increase, decrease } from '../modules/counter';
+import { connect } from 'react-redux';
+
+const CounterContainer = ({ number, increase, decrease }) => {
+  return (
+    <Counter number={number} onIncrease={increase} onDecrease={decrease} />
+  );
+};
+
+export default connect(
+  (state) => ({ number: state.counter.number }),
+  (dispatch) => bindActionCreators({ increase, decrease }, dispatch),
+)(CounterContainer);
+
+또는
+
+// 이런식으로 액션 생성 함수를 객체 형태로 넣어주면 connect함수에서 내부적으로 bindActionCreators 작업을 대신 해준다.
+export default connect(
+  (state) => ({ number: state.counter.number }),
+  { increase, decrease }),
+)(CounterContainer);
+```
+
+## module(액션 생성 함수, 리듀서) 더 쉽게 작성하기 457p.
+
+기존의 작성 코드
+
+```javascript
+const INCREASE = "counter/INCREASE";
+const DECREASE = "counter/DECREASE";
+
+export const increase = (num) => ({ type: INCREASE, payload: num });
+export const decrease = () => ({ type: DECREASE });
+
+const initialState = {
+  number: 0,
+};
+
+function counter(state = initialState, action) {
+  switch (action.type) {
+    case INCREASE:
+      return {
+        number: state.number + action.payload,
+      };
+    case DECREASE:
+      return {
+        number: state.number - 1,
+      };
+    default:
+      return state;
+  }
+}
+
+export default counter;
+```
+
+redux-actions에서 createAction과 handleActions를 사용한 후
+
+```javascript
+import { createAction, handleActions } from "redux-actions";
+
+const INCREASE = "counter/INCREASE";
+const DECREASE = "counter/DECREASE";
+
+export const increase = createAction(INCREASE, (num) => num);
+export const decrease = createAction(DECREASE);
+
+const initialState = {
+  number: 0,
+};
+
+const counter = handleActions(
+  {
+    [INCREASE]: (state, action) => ({ number: state.number + action.payload }),
+    [DECREASE]: (state, action) => ({ number: state.number - 1 }),
+  },
+  initialState
+);
+
+export default counter;
+```
+
+## connect함수 대신 Hooks를 사용하여 스토어에 상태 및 디스패치 가져오기
+
+**액션을 디스패치 하는 함수가 많아지면 468p. 참고**
+
+```javascript
+import { increase, decrease } from "../modules/counter";
+import { useSelector, useDispatch } from "react-redux";
+
+const CounterContainer = () => {
+  const number = useSelector((state) => state.counter.number);
+  const dispatch = useDispatch();
+  return (
+    <Counter
+      number={number}
+      onIncrease={() => dispatch(increase())}
+      onDecrease={() => dispatch(decrease())}
+    />
+  );
+};
+
+export default CounterContainer;
+```
+
+하지만 위 컴포너트는 숫자가 바뀌어 컴포넌트가 리렌더링 될 때마다 onIncrease, onDecrase함수가 새로 만들어지므로 useCallback으로 최적화 해주면 좋다.
+
+```javascript
+import React, { useCallback } from "react";
+import { increase, decrease } from "../modules/counter";
+import { useSelector, useDispatch } from "react-redux";
+
+const CounterContainer = () => {
+  const number = useSelector((state) => state.counter.number);
+  const dispatch = useDispatch();
+  const onIncrease = useCallback(() => {
+    dispatch(increase());
+  }, [dispatch]);
+  const onDecrease = useCallback(() => {
+    dispatch(decrease());
+  }, [dispatch]);
+  return (
+    <Counter number={number} onIncrease={onIncrease} onDecrease={onDecrease} />
+  );
+};
+
+export default CounterContainer;
+```
+
+## What is Middleware? 476p.
+
+액션을 디스패치했을 때 리듀서에서 이를 처리하기에 앞서 사전에 지정된 작업들을 실행. 미들웨어는 액션과 리듀서 사이의 중간자  
+여러 종류의 작업 처리 가능
+
+- 특정 조건에 따라 액션 무시
+- 특정 액션에 기반하여 새로운 액션을 여러번 디스패치 등
+
+## redux-thunk, redux-saga 482p.
+
+두 미들웨어는 비동기 작업을 처리할 떄 가장 많이 사용  
+redux-thunk: 객체가 아닌 함수 형태의 액션을 디스패치할 수 있게 해준다.  
+redux-saga: 특정 액션이 디스패치되었을 때 정해진 로직에 따라 다른 액션을 디스패치 시키는 규칙을 작성
+
+**redux-saga의 강점**
+
+- 기존 요청 취소 처리할 때(불필요한 중복 요청 방지)
+- 웹 소켓을 사용할 때
+- 특정 액션이 발생했을 때 다른 액션을 발생시키거나, API 요청 등 리덕스와 관계 없는 코드를 실행할 때
+- API 요청 실패 시 재요청해야 할 때
+
+## 코드 스플리팅 522p.
+
+리액트 프로젝트에 별도의 설정이 없다면 A, B, C에 대한 코드가 모두 한 파일에 저장된다.
+이렇게 되면 애플리케이션 규모가 커질 경우 당장 필요하지 않은 정보도 가지고 오면서 로딩이 오래 걸린다.
+다른 예로, 사용자가 A페이지에 접근할 때 B, C 페이지의 정보는 필요하지 않으므로 A페이지만 우선 로드하도록 한다.
+
+해결 방법으로는 코드 비동기 로딩이 있다.
