@@ -4,10 +4,30 @@ import Joi from '@hapi/joi';
 
 const { ObjectId } = mongoose.Types;
 
-export const checkObjectId = (ctx, next) => {
+export const getPostById = async (ctx, next) => {
   const { id } = ctx.params;
   if (!ObjectId.isValid(id)) {
-    ctx.status = 400; // Bad Request;
+    ctx.status = 400; //Bad Request
+    return;
+  }
+  try {
+    const post = await Post.findById(id);
+    //포스트가 없을 때
+    if (!post) {
+      ctx.status = 404; // Not Found;
+      return;
+    }
+    ctx.state.post = post;
+    return next();
+  } catch (e) {
+    ctx.throw(500, e);
+  }
+};
+
+export const checkOwnPost = (ctx, next) => {
+  const { user, post } = ctx.state;
+  if (post.user._id.toString() !== user._id) {
+    ctx.status = 403;
     return;
   }
   return next();
@@ -40,6 +60,7 @@ export const write = async (ctx) => {
     title,
     body,
     tags,
+    user: ctx.state.user,
   });
   try {
     await post.save();
@@ -50,15 +71,27 @@ export const write = async (ctx) => {
 };
 
 /**
- * GET /api/posts
+ * GET /api/posts?username=&tag=&page=
  */
 export const list = async (ctx) => {
   //query는 문자열이기 때문에 숫자로 변환해 주어야함.
   // 값이 없다면 1이 기본값
   const page = parseInt(ctx.query.page || '1', 10);
+
+  if (page < 1) {
+    ctx.status = 400;
+    return;
+  }
+
+  const { tag, username } = ctx.query;
+  // tag, username값이 유효하면 객체에 넣고 아니면 안넣음
+  const query = {
+    ...(username ? { 'user.username': username } : {}),
+    ...(tag ? { tags: tag } : {}),
+  };
   try {
     // sort 파라미터에서 key는 정렬할 필드 값이 1이면 오름차순, -1 내림차순
-    const posts = await Post.find()
+    const posts = await Post.find(query)
       .sort({ _id: -1 })
       .limit(10)
       .skip((page - 1) * 10)
@@ -66,7 +99,7 @@ export const list = async (ctx) => {
       .exec();
     ctx.body = posts;
     //client에 페이지 개수 전달
-    const postCount = await Post.countDocuments().exec();
+    const postCount = await Post.countDocuments(query).exec();
     ctx.set('Last-Page', Math.ceil(postCount / 10));
     ctx.body = posts.map((post) => ({
       ...post,
@@ -81,18 +114,8 @@ export const list = async (ctx) => {
 /**
  * GET /api/posts/:id
  */
-export const read = async (ctx) => {
-  const { id } = ctx.params;
-  try {
-    const post = await Post.findById(id).exec();
-    if (!post) {
-      ctx.status = 404;
-      return;
-    }
-    ctx.body = post;
-  } catch (error) {
-    ctx.throw(500, error);
-  }
+export const read = (ctx) => {
+  ctx.body = ctx.state.post;
 };
 
 /**
