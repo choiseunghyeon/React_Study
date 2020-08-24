@@ -20,8 +20,10 @@
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
     "koa-router": "^9.4.0",
+    "koa-static": "^5.0.0",
     "mongoose": "^5.10.0",
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.4",
+    "sanitize-html": "^1.27.3"
   },
   "devDependencies": {
     "eslint": "^7.7.0"

@@ -54,3 +54,5 @@ post.save();
 ```javascript
 const posts = await Post.find().exec();
 ```
+
+## localStorage 값 가져와 리덕스 스토어에 넣기 799p.

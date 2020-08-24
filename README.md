@@ -54,3 +54,5 @@ npm i redux-devtools-extension
 import {composeWithDevTools} from 'redux-devtools-extension';
 
 const store = createStore(rootReducer, composeWithDevTools());
+
+## VS Code Snippet 734p.
